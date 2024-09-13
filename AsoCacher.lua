@@ -434,15 +434,7 @@ while (API.Read_LoopyLoop()) do
     end
 
     if not isMoving() and not API.CheckAnim(40) then
-        if API.InvFull_() then
-            if HasAutoScreener() and usePorters then
-                -- if porterCheck() then
-                --     API.DoAction_Interface(0xffffffff, 0xae06, 6, 1464, 15, 2, API.OFF_ACT_GeneralInterface_route2)
-                -- end
-                keepGOTEcharged()
-                elseif not porterCheck() and not API.InvItemFound1(39488) then
-                    Logout()
-            end
+        if keepGOTEcharged() then
             API.RandomSleep2(600, 200, 300)
         else
             excavate()
