@@ -6,7 +6,7 @@ completes all the activities in order to make dinoarrows from collecting the shi
 
 Just start in the area of your desired activity and click from the dropdown menu....
 
-Last updated: 12/1/24
+Last updated: 21/9/24 -- fixed missed unknown offset
 For bugs, errors or feature requests dm @Asoziales on discord
 
 
@@ -53,23 +53,23 @@ function idleCheck()
 end
 
 local function grabDinos()
-    API.DoAction_Object1(0x2d, 0, {123400}, 50)
+    API.DoAction_Object1(0x2d, API.OFF_ACT_GeneralObject_route0, {123400}, 50)
 end
 
 local function feedRoots()
-    API.DoAction_Object1(0x2f, 0, {123409}, 50)
+    API.DoAction_Object1(0x2f, API.OFF_ACT_GeneralObject_route0, {123409}, 50)
 end
 
 local function feedBeans()
-    API.DoAction_Object1(0x2f, 0, {123405}, 50)
+    API.DoAction_Object1(0x2f, API.OFF_ACT_GeneralObject_route0, {123405}, 50)
 end
 
 local function feedBerries()
-    API.DoAction_Object1(0x2f, 0, {123403}, 50)
+    API.DoAction_Object1(0x2f, API.OFF_ACT_GeneralObject_route0, {123403}, 50)
 end
 
 local function feedCereal()
-    API.DoAction_Object1(0x2f, 0, {123407}, 50)
+    API.DoAction_Object1(0x2f, API.OFF_ACT_GeneralObject_route0, {123407}, 50)
 end
 
 local function burnPropellant()
@@ -78,28 +78,28 @@ local function burnPropellant()
 end
 
 local function grabDinoeggs()
-    API.DoAction_Object1(0x2d, 0, {123383}, 50)
+    API.DoAction_Object1(0x2d,API.OFF_ACT_GeneralObject_route0,{ 123383 },50)
     API.RandomSleep2(600, 200, 300)
     API.WaitUntilMovingEnds()
     API.RandomSleep2(600, 200, 300)
 end
 
 local function incubator()
-    API.DoAction_Object1(0x2f, 0, {123386}, 50)
+    API.DoAction_Object1(0x2f, API.OFF_ACT_GeneralObject_route0, {123386}, 50)
     API.RandomSleep2(600, 200, 300)
     API.WaitUntilMovingEnds()
     API.RandomSleep2(600, 200, 300)
 end
 
 local function compostbin()
-    API.DoAction_Object1(0x2f, 0, {123389}, 50)
+    API.DoAction_Object1(0x2f, API.OFF_ACT_GeneralObject_route0, {123389}, 50)
     API.RandomSleep2(600, 200, 300)
     API.WaitUntilMovingEnds()
     API.RandomSleep2(600, 200, 300)
 end
 
 local function hairstyler()
-    API.DoAction_NPC(0xcd, 1488, {28978}, 50)
+    API.DoAction_NPC(0xcd,API.OFF_ACT_InteractNPC_route,{ 28978 },50)
     API.RandomSleep2(600, 200, 300)
 end
 
