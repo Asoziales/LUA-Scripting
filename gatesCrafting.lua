@@ -21,6 +21,8 @@ MAX_IDLE_TIME_MINUTES = 5
 
 wars = {x = 3294, y = 10127, r = 40, z = 0}
 
+local fail = 0
+
 function idleCheck()
     local timeDiff = os.difftime(os.time(), afk)
     local randomTime = math.random((MAX_IDLE_TIME_MINUTES * 60) * 0.6, (MAX_IDLE_TIME_MINUTES * 60) * 0.9)
@@ -57,11 +59,13 @@ local function startEncounter()
     API.DoAction_Tile(WPOINT.new(ichyX + 8, ichyY, 0))
     API.WaitUntilMovingEnds()
     API.DoAction_NPC(0x29,API.OFF_ACT_InteractNPC_route,{ 17693 },50)
+    fail = fail + 1
 end
 
 local function chiselMoonstone()
     API.DoAction_Object1(0x3e,API.OFF_ACT_GeneralObject_route0,{ 130991 },50)
     API.WaitUntilMovingEnds()
+    fail = 0
 end
 
 API.SetDrawLogs(true)
@@ -69,6 +73,12 @@ API.SetDrawTrackedSkills(true)
 API.Write_LoopyLoop(true)
 while (API.Read_LoopyLoop()) do
 ::continue::
+
+    if fail == 5 then 
+        API.DoAction_Ability("War's Retreat Teleport", 1, API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(3600,1200,200)
+        fail = 0
+    end
 
     if API.CheckAnim(30) or API.ReadPlayerMovin2() then
         API.RandomSleep2(300,200,100)
