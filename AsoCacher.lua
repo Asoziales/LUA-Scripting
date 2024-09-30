@@ -367,6 +367,23 @@ local function gameStateChecks()
     end
 end
 
+local IDS = {ELVEN_SHARD = 43358}
+
+local function hasElvenRitualShard()
+    return API.InvItemcount_1(IDS.ELVEN_SHARD) > 0
+end
+
+local function useElvenRitualShard()
+    if not (API.InvItemcount_1(IDS.ELVEN_SHARD) > 0) then return end
+    local prayer = API.GetPrayPrecent()
+    local elvenCD = API.DeBuffbar_GetIDstatus(IDS.ELVEN_SHARD, false)
+    if prayer < 50 and not elvenCD.found then
+        API.logDebug("Using Elven Shard")
+        API.DoAction_Inventory1(IDS.ELVEN_SHARD, 0, 1, API.OFF_ACT_GeneralInterface_route)
+        UTILS.randomSleep(600)
+    end
+end
+
 setupOptions()
 API.SetDrawLogs(true)
 API.SetDrawTrackedSkills(true)
@@ -383,6 +400,7 @@ while (API.Read_LoopyLoop()) do
     MaterialCounter()
     API.DoRandomEvents()
     idleCheck()
+    if hasElvenRitualShard() then useElvenRitualShard() end
     ---------------- UI
     if btnStop.return_click then
         API.Write_LoopyLoop(false)
