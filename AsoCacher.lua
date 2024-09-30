@@ -333,7 +333,7 @@ local function MaterialCounter()
             if k > 2 then
                 break
             end
-            if string.find(v.text, "You transport the following item to your") then
+            if string.find(v.text, "the following item to your") then
                 matcount = matcount + 1
                 -- else if string.find(v.text, "The Seren spirit gifts you: 1X") then
                 --     blurb = blurb + 1
