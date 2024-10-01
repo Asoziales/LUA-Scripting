@@ -1,10 +1,19 @@
 --[[
 
 @title AsoCacher
-@description Gathers from Material Caches 
+@description Gathers from Material Caches
 @author Asoziales <discord@Asoziales>
-@date 10/07/2024
-@version 1.2 ~ Added Third Age Iron
+@date 01/10/2024
+@version 2.0
+@Changelog
+2.0 <discord@dea.d>
+    - Auto select cache from area
+    - Doesn't interact with depleted caches
+    - Gathers from closest cache
+    - Porters checkbox from UI has been moved to a boolean `usePorters`
+
+1.2 <discord@Asoziales>
+    - Added Third Age Iron
 
 Message on Discord for any Errors or Bugs
 
@@ -19,26 +28,20 @@ local UTILS = require("utils")
 local startXp = API.GetSkillXP("ARCHAEOLOGY")
 local MAX_IDLE_TIME_MINUTES = 5
 local afk = os.time()
-local depositAttempt = 0
 
 local skill = "ARCHAEOLOGY"
 startXp = API.GetSkillXP(skill)
-local version = "1.0"
+local version = "2.0"
 local Material = ""
 local selectedCache = nil
-local selectedMaterial = nil
-local scriptPaused = true
 local matcount = 0
--- local hazele = 0
--- local blurb = 0
-local banking = 0
 local startTime = os.time()
-local errors = {}
-local usePorters
-local firstRun = true
+local usePorters = true
 
-local aioSelectC = API.CreateIG_answer()
-local CacheData = {{
+API.logWarn("Started AsoCacher - (v" .. tostring(version) .. ") by Asoziales")
+print("Started AsoCacher - (v" .. tostring(version) .. ") by Asoziales")
+
+local CacheData = { {
     label = "Vulcanized rubber",
     CACHEID = 116387,
     MATERIALID = 49480
@@ -58,79 +61,18 @@ local CacheData = {{
     label = "Third Age Iron",
     CACHEID = 115426,
     MATERIALID = 49460
-}}
+} }
 
 ID = {
     CACHE = {
         CLAY_CACHE = 116391
     },
     AUTO_SCREENER = 50161,
-    PORTERS = {29281, 29283, 29285, 51490}
+    ELVEN_SHARD = 43358,
+    PORTERS = { 29281, 29283, 29285, 51490 }
 }
-local function setupOptions()
 
-    btnStop = API.CreateIG_answer()
-    btnStop.box_start = FFPOINT.new(120, 149, 0)
-    btnStop.box_name = " STOP "
-    btnStop.box_size = FFPOINT.new(90, 50, 0)
-    btnStop.colour = ImColor.new(255, 0, 0)
-    btnStop.string_value = "STOP"
-
-    btnStart = API.CreateIG_answer()
-    btnStart.box_start = FFPOINT.new(20, 149, 0)
-    btnStart.box_name = " START "
-    btnStart.box_size = FFPOINT.new(90, 50, 0)
-    btnStart.colour = ImColor.new(0, 255, 0)
-    btnStart.string_value = "START"
-
-    IG_Text = API.CreateIG_answer()
-    IG_Text.box_name = "TEXT"
-    IG_Text.box_start = FFPOINT.new(16, 79, 0)
-    IG_Text.colour = ImColor.new(196, 141, 59);
-    IG_Text.string_value = "AsoCacher (v" .. version .. ") by Asoziales"
-
-    IG_Back = API.CreateIG_answer()
-    IG_Back.box_name = "back"
-    IG_Back.box_start = FFPOINT.new(5, 64, 0)
-    IG_Back.box_size = FFPOINT.new(226, 200, 0)
-    IG_Back.colour = ImColor.new(15, 13, 18, 255)
-    IG_Back.string_value = ""
-
-    tickPorters = API.CreateIG_answer()
-    tickPorters.box_ticked = true
-    tickPorters.box_name = "Porters"
-    tickPorters.box_start = FFPOINT.new(69, 122, 0);
-    tickPorters.colour = ImColor.new(0, 255, 0);
-    tickPorters.tooltip_text = "Use Porters in inv."
-
-    aioSelectC.box_name = "###Cache"
-    aioSelectC.box_start = FFPOINT.new(32, 94, 0)
-    aioSelectC.box_size = FFPOINT.new(240, 0, 0)
-    aioSelectC.stringsArr = {}
-    aioSelectC.tooltip_text = "Select a Cache to gather from."
-
-    table.insert(aioSelectC.stringsArr, "Select a Cache")
-    for i, v in ipairs(CacheData) do
-        table.insert(aioSelectC.stringsArr, v.label)
-    end
-
-    API.DrawSquareFilled(IG_Back)
-    API.DrawTextAt(IG_Text)
-    API.DrawBox(btnStart)
-    API.DrawBox(btnStop)
-    API.DrawCheckbox(tickPorters)
-    API.DrawComboBox(aioSelectC, false)
-end
-
-local function round(val, decimal)
-    if decimal then
-        return math.floor((val * 10 ^ decimal) + 0.5) / (10 ^ decimal)
-    else
-        return math.floor(val + 0.5)
-    end
-end
-
-function formatNumber(num)
+local function formatNumber(num)
     if num >= 1e6 then
         return string.format("%.1fM", num / 1e6)
     elseif num >= 1e3 then
@@ -138,40 +80,6 @@ function formatNumber(num)
     else
         return tostring(num)
     end
-end
-
--- helper functions
-local function invContains(items)
-    local loot = API.InvItemcount_2(items)
-    for _, v in ipairs(loot) do
-        if v > 0 then
-            return true
-        end
-    end
-    return false
-end
-
-local function CachetoGather()
-    if (aioSelectC.string_value == "Vulcanized rubber") then
-        Material = "Vulcanized rubber"
-    elseif (aioSelectC.string_value == "Ancient vis") then
-        Material = "Ancient vis"
-    elseif (aioSelectC.string_value == "Blood of Orcus") then
-        Material = "Blood of Orcus"
-    elseif (aioSelectC.string_value == "Hellfire metal") then
-        Material = "Hellfire metal"
-    elseif (aioSelectC.string_value == "Third Age Iron") then
-        Material = "Third Age Iron"
-    end
-end
-
-local function Logout()
-    API.logDebug("Info: Logging out!")
-    API.logInfo("Logging out!")
-    API.DoAction_Logout_mini()
-    API.RandomSleep2(1000, 150, 150)
-    API.DoAction_Interface(0x24,0xffffffff,1,1433,71,-1,API.OFF_ACT_GeneralInterface_route)
-    API.Write_LoopyLoop(false)
 end
 
 local function checkXpIncrease()
@@ -197,35 +105,17 @@ local function idleCheck()
     end
 end
 
-local function gameStateChecks()
-    local gameState = API.GetGameState2()
-    if (gameState ~= 3) then
-        API.logDebug('Not ingame with state:', gameState)
-        API.Write_LoopyLoop(false)
-        return
-    end
-    if not API.PlayerLoggedIn() then
-        API.logDebug('Not Logged In')
-        API.Write_LoopyLoop(false)
-        return;
-    end
-end
-
 local function isMoving()
     return API.ReadPlayerMovin()
 end
 
-local function openBank()
-    API.DoAction_Object1(0x2e, API.OFF_ACT_GeneralObject_route1, {115427}, 50)
-end
-
 local function keepGOTEcharged()
-
+    if not usePorters then return end
     local buffStatus = API.Buffbar_GetIDstatus(51490, false)
     local stacks = tonumber(buffStatus.text)
 
     local function findporters()
-        local portersIds = {51490, 29285, 29283, 29281, 29279, 29277, 29275}
+        local portersIds = { 51490, 29285, 29283, 29281, 29279, 29277, 29275 }
         local porters = API.CheckInvStuff3(portersIds)
         local foundIdx = -1
         for i, value in ipairs(porters) do
@@ -269,61 +159,21 @@ local function keepGOTEcharged()
     end
 end
 
-local function Bank()
-
-    API.logWarn("Not implemented ggez")
-    -- if not API.BankOpen2() then
-    --     openBank()
-    -- end
-    -- depositAttempt = depositAttempt + 1;
-    -- if depositAttempt > 3 then 
-    --     API.Write_LoopyLoop(false)
-    -- end 
-
-    -- print("pressing 3")
-    -- API.KeyboardPress("3",50,100)
-    -- if not API.InvFull_() then
-    --     depositAttempt = 0
-    -- end
-end
-
-local function depositCart()
-    API.logDebug('Inventory is full after using soilbox, trying to deposit: ' .. depositAttempt)
-    depositAttempt = depositAttempt + 1;
-    if depositAttempt > 3 then
-        API.Write_LoopyLoop(false)
-    end
-    local cart = API.GetAllObjArrayInteract_str({"Material storage container"}, 60, {0})
-    if #cart > 0 then
-        API.DoAction_Object_string1(0x29, API.OFF_ACT_GeneralObject_route0, {"Material storage container"}, 60, true);
-        UTILS.randomSleep(800)
-        API.WaitUntilMovingEnds()
-        if not API.InvFull_() then
-            depositAttempt = 0
-        end
-    else
-        API.logWarn('Didn\'t find: Material storage container within 60 tiles')
-    end
-end
-
-local function porterCheck()
-    if invContains(ID.PORTERS) then
-        return true
-    else
-        return false
-    end
-end
-
 local function excavate()
-    if not API.DoAction_Object_valid1(0x2, API.OFF_ACT_GeneralObject_route0, {selectedCache}, 50, true) then
-        API.logDebug("NO Cache found")
-        API.DoAction_Object_valid1(0x2, API.OFF_ACT_GeneralObject_route0, {ID.CACHE.CLAY_CACHE}, 50, true)
+    local caches = API.ReadAllObjectsArray({ 0, 12 }, { selectedCache }, {})
+    local valid = {}
+    for i = 1, #caches, 1 do
+        local cache = caches[i]
+        if cache.Bool1 == 0 then
+            table.insert(valid, cache)
+        end
     end
-    API.RandomSleep2(5000, 1000, 2000)
-end
-
-local function HasAutoScreener()
-    return API.InvItemcount_1(ID.AUTO_SCREENER) > 0
+    if #valid > 0 then
+        local target = API.Math_SortAODist(valid)
+        if API.DoAction_Object_Direct(0x2, API.OFF_ACT_GeneralObject_route0, target) then
+            UTILS.countTicks(2)
+        end
+    end
 end
 
 local function MaterialCounter()
@@ -333,12 +183,8 @@ local function MaterialCounter()
             if k > 2 then
                 break
             end
-            if string.find(v.text, "the following item to your") then
+            if string.find(v.text, "the following item to your") or string.find(v.text, "perk transports your items") then
                 matcount = matcount + 1
-                -- else if string.find(v.text, "The Seren spirit gifts you: 1X") then
-                --     blurb = blurb + 1
-                -- else if string.find(v.text, "You transport the following item to your bank") then
-                --     hazele = hazele + 1
             end
         end
     end
@@ -356,7 +202,7 @@ end
 local function gameStateChecks()
     local gameState = API.GetGameState2()
     if (gameState ~= 3) then
-        API.logError('Not ingame with state:', gameState)
+        API.logError('Not ingame with state:' .. tostring(gameState))
         API.Write_LoopyLoop(false)
         return
     end
@@ -367,100 +213,65 @@ local function gameStateChecks()
     end
 end
 
-local IDS = {ELVEN_SHARD = 43358}
 
 local function hasElvenRitualShard()
-    return API.InvItemcount_1(IDS.ELVEN_SHARD) > 0
+    return API.InvItemcount_1(ID.ELVEN_SHARD) > 0
 end
 
 local function useElvenRitualShard()
-    if not (API.InvItemcount_1(IDS.ELVEN_SHARD) > 0) then return end
+    if not (API.InvItemcount_1(ID.ELVEN_SHARD) > 0) then return end
     local prayer = API.GetPrayPrecent()
-    local elvenCD = API.DeBuffbar_GetIDstatus(IDS.ELVEN_SHARD, false)
+    local elvenCD = API.DeBuffbar_GetIDstatus(ID.ELVEN_SHARD, false)
     if prayer < 50 and not elvenCD.found then
         API.logDebug("Using Elven Shard")
-        API.DoAction_Inventory1(IDS.ELVEN_SHARD, 0, 1, API.OFF_ACT_GeneralInterface_route)
+        API.DoAction_Inventory1(ID.ELVEN_SHARD, 0, 1, API.OFF_ACT_GeneralInterface_route)
         UTILS.randomSleep(600)
     end
 end
 
-setupOptions()
+local function onStart()
+    for key, cache in pairs(CacheData) do
+        if (#API.ReadAllObjectsArray({ 0, 12 }, { cache.CACHEID }, {}) > 0) then
+            selectedCache = cache.CACHEID
+            Material = cache.label
+            API.logWarn('Found Cache:' .. Material)
+            print('Found Cache:' .. Material)
+            break
+        end
+    end
+end
+
+onStart()
 API.SetDrawLogs(true)
 API.SetDrawTrackedSkills(true)
+
 while (API.Read_LoopyLoop()) do
     MaterialCounter()
-    CachetoGather()
-    local elapsedMinutes = (os.time() - startTime)
-    local metrics = {{"Script", "AsoCacher - (v" .. version .. ") by Asoziales"}, {"Selected:", Material},
-                     {"Runtime:", formatElapsedTime(startTime)}, {"Mats:", formatNumber(matcount)} -- {"Blurbs:", tostring(blurb)},
-    --  {"Hazelmere's:", tostring(hazele)}
+    local metrics = {
+        { "Script", "AsoCacher - (v" .. version .. ") by Asoziales"},
+        { "Selected:", Material },
+        { "Runtime:", formatElapsedTime(startTime)},
+        { "Mats:", formatNumber(matcount)}
     }
+
     API.DrawTable(metrics)
     gameStateChecks()
-    MaterialCounter()
     API.DoRandomEvents()
     idleCheck()
     if hasElvenRitualShard() then useElvenRitualShard() end
-    ---------------- UI
-    if btnStop.return_click then
+    if selectedCache == nil then
         API.Write_LoopyLoop(false)
-        API.SetDrawLogs(false)
-    end
-    if scriptPaused == false then
-        if btnStart.return_click then
-            btnStart.return_click = false
-            btnStart.box_name = " START "
-            scriptPaused = true
-        end
-    end
-    if scriptPaused == true then
-        if btnStart.return_click then
-            btnStart.return_click = false
-            btnStart.box_name = " PAUSE "
-            IG_Back.remove = true
-            btnStart.remove = true
-            IG_Text.remove = true
-            btnStop.remove = true
-            tickPorters.remove = true
-            aioSelectC.remove = true
-            usePorters = tickPorters.box_ticked
-            MAX_IDLE_TIME_MINUTES = 15
-            scriptPaused = false
-            print("Script started!")
-            API.logDebug("Info: Script started!")
-            if firstRun then
-                startTime = os.time()
-            end
-
-            if (aioSelectC.return_click) then
-                aioSelectC.return_click = false
-                for i, v in ipairs(CacheData) do
-                    if (aioSelectC.string_value == v.label) then
-                        selectedCache = v.CACHEID
-                        selectedMaterial = v.MATERIALID
-                    end
-                end
-            end
-
-            if selectedCache == nil then
-                API.Write_LoopyLoop(false)
-                print("Please select a Cache type from the dropdown menu!")
-                API.logError("Please select a Cache type from the dropdown menu!")
+        print("Couldn't find a valid cache")
+        API.logError("Couldn't find a valid cache")
+        break
+    else
+        if not isMoving() and not API.CheckAnim(40) then
+            if keepGOTEcharged() then
+                API.RandomSleep2(600, 200, 300)
+            else
+                excavate()
             end
         end
-        goto continue
     end
-
-    if not isMoving() and not API.CheckAnim(40) then
-        if keepGOTEcharged() then
-            API.RandomSleep2(600, 200, 300)
-        else
-            excavate()
-            API.RandomSleep2(600, 200, 300)
-        end
-    end
-
-    ::continue::
-    API.RandomSleep2(500, 650, 500)
+    UTILS.rangeSleep(200, 0, 0)
 end
-
