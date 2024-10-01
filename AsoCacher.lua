@@ -4,8 +4,10 @@
 @description Gathers from Material Caches
 @author Asoziales <discord@Asoziales>
 @date 01/10/2024
-@version 2.0
+@version 2.1
 @Changelog
+2.1 <discord@dea.d>
+    - Added UI to select hotspot when multiple matching exist
 2.0 <discord@dea.d>
     - Auto select cache from area
     - Doesn't interact with depleted caches
@@ -33,14 +35,16 @@ local skill = "ARCHAEOLOGY"
 startXp = API.GetSkillXP(skill)
 local version = "2.0"
 local Material = ""
-local selectedCache = nil
+local targets = {}
+local selectedCache
 local matcount = 0
 local startTime = os.time()
 local usePorters = true
+local runScript = false
 
 API.logWarn("Started AsoCacher - (v" .. tostring(version) .. ") by Asoziales")
 print("Started AsoCacher - (v" .. tostring(version) .. ") by Asoziales")
-
+local aioSelectC = API.CreateIG_answer()
 local CacheData = { {
     label = "Vulcanized rubber",
     CACHEID = 116387,
@@ -71,6 +75,57 @@ ID = {
     ELVEN_SHARD = 43358,
     PORTERS = { 29281, 29283, 29285, 51490 }
 }
+
+local function setupOptions()
+    btnStop = API.CreateIG_answer()
+    btnStop.box_start = FFPOINT.new(120, 149, 0)
+    btnStop.box_name = " STOP "
+    btnStop.box_size = FFPOINT.new(90, 50, 0)
+    btnStop.colour = ImColor.new(255, 0, 0)
+    btnStop.string_value = "STOP"
+
+    btnStart = API.CreateIG_answer()
+    btnStart.box_start = FFPOINT.new(20, 149, 0)
+    btnStart.box_name = " START "
+    btnStart.box_size = FFPOINT.new(90, 50, 0)
+    btnStart.colour = ImColor.new(0, 255, 0)
+    btnStart.string_value = "START"
+
+    IG_Text = API.CreateIG_answer()
+    IG_Text.box_name = "TEXT"
+    IG_Text.box_start = FFPOINT.new(16, 79, 0)
+    IG_Text.colour = ImColor.new(196, 141, 59);
+    IG_Text.string_value = "AsoCacher (v" .. version .. ") by Asoziales"
+
+    IG_Back = API.CreateIG_answer()
+    IG_Back.box_name = "back"
+    IG_Back.box_start = FFPOINT.new(5, 64, 0)
+    IG_Back.box_size = FFPOINT.new(226, 200, 0)
+    IG_Back.colour = ImColor.new(15, 13, 18, 255)
+    IG_Back.string_value = ""
+
+    tickPorters = API.CreateIG_answer()
+    tickPorters.box_ticked = usePorters
+    tickPorters.box_name = "Porters"
+    tickPorters.box_start = FFPOINT.new(69, 122, 0);
+    tickPorters.colour = ImColor.new(0, 255, 0);
+    tickPorters.tooltip_text = "Use Porters in inv."
+
+    aioSelectC.box_name = "###Cache"
+    aioSelectC.box_start = FFPOINT.new(32, 94, 0)
+    aioSelectC.box_size = FFPOINT.new(240, 0, 0)
+    aioSelectC.stringsArr = {}
+    aioSelectC.tooltip_text = "Select a Cache to gather from."
+
+    table.insert(aioSelectC.stringsArr, "Select a Cache")
+
+    API.DrawSquareFilled(IG_Back)
+    API.DrawTextAt(IG_Text)
+    API.DrawBox(btnStart)
+    API.DrawBox(btnStop)
+    API.DrawCheckbox(tickPorters)
+    API.DrawComboBox(aioSelectC, false)
+end
 
 local function formatNumber(num)
     if num >= 1e6 then
@@ -160,7 +215,7 @@ local function keepGOTEcharged()
 end
 
 local function excavate()
-    local caches = API.ReadAllObjectsArray({ 0, 12 }, { selectedCache }, {})
+    local caches = API.ReadAllObjectsArray({ 0, 12 }, { selectedCache.CACHEID }, {})
     local valid = {}
     for i = 1, #caches, 1 do
         local cache = caches[i]
@@ -180,10 +235,10 @@ local function MaterialCounter()
     local chatEvents = API.GatherEvents_chat_check()
     if chatEvents then
         for k, v in pairs(chatEvents) do
-            if k > 2 then
-                break
-            end
             if string.find(v.text, "the following item to your") or string.find(v.text, "perk transports your items") then
+                matcount = matcount + 1
+            end
+            if string.find(v.text, "sash brush perfectly") then
                 matcount = matcount + 1
             end
         end
@@ -229,47 +284,91 @@ local function useElvenRitualShard()
     end
 end
 
-local function onStart()
+local function populateDropdown()
     for key, cache in pairs(CacheData) do
         if (#API.ReadAllObjectsArray({ 0, 12 }, { cache.CACHEID }, {}) > 0) then
-            selectedCache = cache.CACHEID
-            Material = cache.label
-            API.logWarn('Found Cache:' .. Material)
-            print('Found Cache:' .. Material)
-            break
+            table.insert(targets, cache)
         end
+    end
+    if #targets > 0 then
+        local valueStrings = {}
+        for i = 1, #targets, 1 do
+            local item = targets[i]
+            table.insert(valueStrings, item.label)
+        end
+        aioSelectC.stringsArr = valueStrings
+        aioSelectC.int_value = 0
+    end
+end
+
+local function onStart()
+    setupOptions()
+    API.SetDrawLogs(true)
+    API.SetDrawTrackedSkills(true)
+    populateDropdown()
+    startTime = os.time()
+    MAX_IDLE_TIME_MINUTES = 15
+    selectedCache = targets[aioSelectC.int_value + 1]
+    Material = selectedCache.label
+end
+
+local function guiLoop()
+    if aioSelectC.return_click then
+        local currentHotspot = Material
+        local selected = aioSelectC.stringsArr[aioSelectC.int_value + 1]
+        if selected == nil then return end
+        selectedCache = targets[aioSelectC.int_value + 1]
+        print(selectedCache.label)
+        if currentHotspot ~= selected then
+            Material = selected
+            excavate()
+        end
+        aioSelectC.return_click = false
+    end
+
+    usePorters = tickPorters.box_ticked
+    if btnStart.return_click then
+        btnStart.return_click = false
+        usePorters = tickPorters.box_ticked
+        if btnStart.box_name == " PAUSE " then
+            runScript = false
+            btnStart.box_name = " START "
+        else
+            runScript = true
+            btnStart.box_name = " PAUSE "
+        end
+    end
+    if btnStop.return_click then
+        API.Write_LoopyLoop(false)
+        API.SetDrawLogs(false)
+        btnStop.return_click = false
     end
 end
 
 onStart()
-API.SetDrawLogs(true)
-API.SetDrawTrackedSkills(true)
-
 while (API.Read_LoopyLoop()) do
     MaterialCounter()
     local metrics = {
-        { "Script", "AsoCacher - (v" .. version .. ") by Asoziales"},
+        { "Script",    "AsoCacher - (v" .. version .. ") by Asoziales" },
         { "Selected:", Material },
-        { "Runtime:", formatElapsedTime(startTime)},
-        { "Mats:", formatNumber(matcount)}
+        { "Runtime:",  formatElapsedTime(startTime) },
+        { "Mats:",     formatNumber(matcount) }
     }
 
     API.DrawTable(metrics)
     gameStateChecks()
     API.DoRandomEvents()
     idleCheck()
+    guiLoop()
     if hasElvenRitualShard() then useElvenRitualShard() end
-    if selectedCache == nil then
-        API.Write_LoopyLoop(false)
-        print("Couldn't find a valid cache")
-        API.logError("Couldn't find a valid cache")
-        break
-    else
-        if not isMoving() and not API.CheckAnim(40) then
-            if keepGOTEcharged() then
-                API.RandomSleep2(600, 200, 300)
-            else
-                excavate()
+    if selectedCache ~= nil then
+        if runScript then
+            if not isMoving() and not API.CheckAnim(40) then
+                if keepGOTEcharged() then
+                    API.RandomSleep2(600, 200, 300)
+                else
+                    excavate()
+                end
             end
         end
     end
