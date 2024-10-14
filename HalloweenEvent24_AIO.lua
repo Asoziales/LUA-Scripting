@@ -23,7 +23,9 @@ IDS = { OBJ = { CANDLES = {131362,131364},
                 SUMMONCIRCLE = {131360},
                 LOOTABLE = {131353,131351},
                 ARCH = {131355},
-                }
+    },
+        NPC = { EEP = {31287}, 
+    }
     }
 
     local options = {"Choose Selection", "Thieving", "Archeology", "Summoning"}
@@ -103,6 +105,54 @@ local function followTimeSprite(objects)
     end
 end
 
+local destroyInterface = {
+    InterfaceComp5.new(1183, 11, -1, -1, 0),
+}
+
+local function destroyInterfaceFound()
+    local result = API.ScanForInterfaceTest2Get(true, destroyInterface)
+    if #result > 0 then
+        return true
+    else
+        return false
+    end
+end
+
+local function destroyTome()
+    local inventory = API.ReadInvArrays33()
+
+    local items = UTILS.getDistinctByProperty(inventory, "textitem")
+    for i = 1, #items, 1 do
+        local item = items[i]
+        if string.find(tostring(item.textitem), "Complete tome") then
+            API.logWarn("Destroying " .. item.textitem)
+            API.DoAction_Interface(0x24, item.itemid1, 8, item.id1, item.id2, item.id3,
+                API.OFF_ACT_GeneralInterface_route2)
+            UTILS.SleepUntil(destroyInterfaceFound, 5, "Destroying " .. item.textitem)
+            API.DoAction_Interface(0xffffffff, 0xffffffff, 0, 1183, 5, -1, API.OFF_ACT_GeneralInterface_Choose_option)
+            UTILS.randomSleep(800)
+        end
+    end
+end
+
+local function handInCollection()
+    if API.InvFull_() then
+        API.DoAction_NPC(0x29,API.OFF_ACT_InteractNPC_route2,IDS.NPC.EEP,50)
+        API.WaitUntilMovingEnds(10,3)
+        API.DoAction_Interface(0x24,0xffffffff,1,656,25,0,API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(600,200,200)
+        API.DoAction_Interface(0x24,0xffffffff,1,656,25,0,API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(600,200,200)
+        API.DoAction_Interface(0x24,0xffffffff,1,656,25,0,API.OFF_ACT_GeneralInterface_route)
+        API.RandomSleep2(600,200,200)
+        API.DoAction_Interface(0x24,0xffffffff,1,656,25,0,API.OFF_ACT_GeneralInterface_route)   
+        API.RandomSleep2(600,1200,600)
+        if API.InvFull_() then
+            API.Write_LoopyLoop(false)
+        end
+    end
+end
+
 --#endregion
 
 local function drawGUI()
@@ -122,6 +172,8 @@ while (API.Read_LoopyLoop()) do
 
     if selected == "Archeology" then
         followTimeSprite()
+        destroyTome()
+        handInCollection()
     end
 
     if selected == "Summoning" then
