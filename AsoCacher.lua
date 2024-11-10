@@ -65,7 +65,16 @@ local CacheData = { {
     label = "Third Age Iron",
     CACHEID = 115426,
     MATERIALID = 49460
-} }
+}, {
+    label = "Cadmium red",
+    CACHEID = 116420,
+    MATERIALID = 49496
+}, {
+    label = "Armadylean yellow",
+    CACHEID = 116379,
+    MATERIALID = 49468
+}, 
+}
 
 ID = {
     CACHE = {
