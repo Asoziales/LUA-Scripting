@@ -1,14 +1,12 @@
 --[[
 
-@title 
-@description 
+@title Aso Hall of Memorys
+@description does HoM for big XP gains
 @author Asoziales <discord@Asoziales>
 @date 
-@version 1.0
+@version 1.2
 
 Message on Discord for any Errors or Bugs
-
-insert instructions here
 
 --]]
 
@@ -24,6 +22,7 @@ IDS = {
     OBJECTS = {
         jarDepot  =  { 111374 },
         unstableRift  =  { 111375 },
+        plinth = { 111376 },
     },
     NPCS = {
         fadedMemories  =  { 25540 },
@@ -52,6 +51,7 @@ IDS = {
 local version = "1.0"
 local scriptPaused = true
 local twoTick
+local dumpCore
 
 
 local function setupOptions()
@@ -90,11 +90,19 @@ local function setupOptions()
     tickPorters.colour = ImColor.new(0, 255, 0);
     tickPorters.tooltip_text = "should i be 2 ticking?"
 
+    tickcore = API.CreateIG_answer()
+    tickcore.box_ticked = false
+    tickcore.box_name = "use cores?"
+    tickcore.box_start = FFPOINT.new(69, 100, 0);
+    tickcore.colour = ImColor.new(0, 255, 0);
+    tickcore.tooltip_text = "use cores on plinth?"
+
     API.DrawSquareFilled(IG_Back)
     API.DrawTextAt(IG_Text)
     API.DrawBox(btnStart)
     API.DrawBox(btnStop)
     API.DrawCheckbox(tickPorters)
+    API.DrawCheckbox(tickcore)
 end
 
 fullinv = { 42898 }
@@ -219,12 +227,18 @@ local function depositJars()
     end
 end
 
+local function centerActive()
+    if foundNPC(IDS.NPCS.aagi) or foundNPC(IDS.NPCS.seren) or foundNPC(IDS.NPCS.juna) or foundNPC(IDS.NPCS.swordOfEdicts) or foundNPC(IDS.NPCS.cres) then
+        return true
+    else return false end
+end
+
 setupOptions()
 API.SetDrawLogs(true)
 API.SetDrawTrackedSkills(true)
 API.Write_LoopyLoop(true)
 while (API.Read_LoopyLoop()) do
-
+::home::
     if btnStop.return_click then
         API.Write_LoopyLoop(false)
         API.SetDrawLogs(false)
@@ -234,7 +248,9 @@ while (API.Read_LoopyLoop()) do
             btnStart.return_click = false
             btnStart.box_name = " START "
             scriptPaused = true
+            goto home
         end
+        
     end
     if scriptPaused == true then
         if btnStart.return_click then
@@ -245,7 +261,9 @@ while (API.Read_LoopyLoop()) do
             IG_Text.remove = true
             btnStop.remove = true
             tickPorters.remove = true
+            tickcore.remove = true
             twoTick = tickPorters.box_ticked
+            dumpCore = tickcore.box_ticked
             MAX_IDLE_TIME_MINUTES = 15
             scriptPaused = false
             print("Script started!")
@@ -254,10 +272,20 @@ while (API.Read_LoopyLoop()) do
                 startTime = os.time()
             end
         end
+        
     end
-
+    
+    
     collectKnowledgeFrag()
     collectCoreMemoryFrag()
+
+    ::core::
+    if dumpCore and not centerActive() and API.InvStackSize(IDS.ITEMS.coreMemoryFragment) > 0 then
+        API.DoAction_Object_valid1(0x29,API.OFF_ACT_GeneralObject_route0,IDS.OBJECTS.plinth,50,true) 
+        API.RandomSleep2(2400,1800,1800)
+        API.WaitUntilMovingEnds(20,2)
+        goto core
+    end
 
     if twoTick and API.ReadPlayerAnim() == 31889 then
         twoTicking()
