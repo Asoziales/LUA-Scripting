@@ -77,6 +77,10 @@ local CacheData = { {
     label = "Cobalt blue",
     CACHEID = 116416,
     MATERIALID = 49486
+}, {
+    label = "Goldrune",
+    CACHEID = 116402,
+    MATERIALID = 49450
 }, 
 }
 
