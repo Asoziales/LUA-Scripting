@@ -85,6 +85,10 @@ local CacheData = { {
     label = "Samite silk",
     CACHEID = 116399,
     MATERIALID = 49456
+}, {
+    label = "Soapstone",
+    CACHEID = 116410,
+    MATERIALID = 49458
 }, 
 }
 
