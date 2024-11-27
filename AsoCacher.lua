@@ -89,7 +89,11 @@ local CacheData = { {
     label = "Soapstone",
     CACHEID = 116410,
     MATERIALID = 49458
-}, 
+}, {
+    label = "Tyrian purple",
+    CACHEID = 116434,
+    MATERIALID = 49512
+}
 }
 
 ID = {
@@ -221,8 +225,7 @@ local function keepGOTEcharged()
         API.DoAction_Interface(0xffffffff, 0xae06, 6, 1464, 15, 2, API.OFF_ACT_GeneralInterface_route2)
         API.RandomSleep2(600, 600, 600)
         return
-    end
-    if stacks and stacks <= 50 and findporters() == nil then
+    elseif stacks and stacks <= 50 and findporters() == nil then
         API.DoAction_Inventory1(39488, 0, 1, API.OFF_ACT_GeneralInterface_route)
         API.RandomSleep2(600, 300, 600)
         API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 1371, 22, 13, API.OFF_ACT_GeneralInterface_route)
@@ -388,12 +391,9 @@ while (API.Read_LoopyLoop()) do
     if hasElvenRitualShard() then useElvenRitualShard() end
     if selectedCache ~= nil then
         if runScript then
+            keepGOTEcharged()
             if not isMoving() and not API.CheckAnim(40) then
-                if keepGOTEcharged() then
-                    API.RandomSleep2(600, 200, 300)
-                else
-                    excavate()
-                end
+                excavate()
             end
         end
     end
