@@ -248,7 +248,7 @@ local function porterLogic()
         end
     end
 
-    if Equipment:getAmulet(ESlot.AMULET) == 44548 then
+    if Equipment:GetNeck(ESlot.NECK) == 44548 then
         if stacks and stacks <= 50 and findporters() then
             API.DoAction_Interface(0xffffffff, 0xae06, 6, 1464, 15, 2, API.OFF_ACT_GeneralInterface_route2)
             API.RandomSleep2(600, 600, 600)
