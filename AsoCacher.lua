@@ -109,7 +109,7 @@ local CacheData = {{
     MATERIALID = 49498
 }, {
     label = "Eye of Dagon",
-    CACHEID =116424,
+    CACHEID = 116424,
     MATERIALID = 49502
 }, {
     label = "Leather Scraps",
@@ -117,10 +117,9 @@ local CacheData = {{
     MATERIALID = 49452
 }, {
     label = "Zarosian insignia",
-    CACHEID =116429,
+    CACHEID = 116429,
     MATERIALID = 49514
-}
-}
+}}
 
 ID = {
     CACHE = {
@@ -271,6 +270,21 @@ local function porterLogic()
     else
         if not buffStatus and findporters() then
             API.DoAction_Inventory1(findporters(), 0, 2, API.OFF_ACT_GeneralInterface_route)
+        else
+            if not buffStatus and findporters() == nil then
+                API.DoAction_Inventory1(39488, 0, 1, API.OFF_ACT_GeneralInterface_route)
+                API.RandomSleep2(600, 300, 600)
+                API.DoAction_Interface(0xffffffff, 0xffffffff, 1, 1371, 22, 13, API.OFF_ACT_GeneralInterface_route)
+                API.RandomSleep2(600, 200, 600)
+                API.DoAction_Interface(0xffffffff, 0xffffffff, 0, 1370, 30, -1,
+                    API.OFF_ACT_GeneralInterface_Choose_option)
+                API.RandomSleep2(600, 300, 500)
+                ::loop::
+                if API.isProcessing() then
+                    API.RandomSleep2(200, 300, 200)
+                    goto loop
+                end
+            end
         end
     end
 end
