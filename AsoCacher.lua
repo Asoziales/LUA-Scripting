@@ -103,7 +103,24 @@ local CacheData = {{
     label = "Keramos",
     CACHEID = 116413,
     MATERIALID = 49490
-}}
+}, {
+    label = "Chaotic brimstone",
+    CACHEID = 116421,
+    MATERIALID = 49498
+}, {
+    label = "Eye of Dagon",
+    CACHEID =116424,
+    MATERIALID = 49502
+}, {
+    label = "Leather Scraps",
+    CACHEID = 116405,
+    MATERIALID = 49452
+}, {
+    label = "Zarosian insignia",
+    CACHEID =116429,
+    MATERIALID = 49514
+}
+}
 
 ID = {
     CACHE = {
@@ -231,7 +248,7 @@ local function porterLogic()
         end
     end
 
-    if Equipment.getAmulet(ESlot.NECK) == 44548 then
+    if Equipment:getAmulet(ESlot.AMULET) == 44548 then
         if stacks and stacks <= 50 and findporters() then
             API.DoAction_Interface(0xffffffff, 0xae06, 6, 1464, 15, 2, API.OFF_ACT_GeneralInterface_route2)
             API.RandomSleep2(600, 600, 600)
